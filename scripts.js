@@ -6,6 +6,7 @@ function paddle(x, y, width, height){
     this.y = y;
     this.width = width;
     this.height = height;
+    this.speedModifier = 0;
     this.hasCollidedWith = function(ball){
         let paddleLeftWall = this.x;
         let paddleRightWall = this.x + this.width;
@@ -15,17 +16,53 @@ function paddle(x, y, width, height){
         && ball.y > paddleTopWall && ball.y < paddleBottomWall) return true;
 
         return false
+    };
+    this.move = function(keyCode){
+        let nextY = this.y;
+        if(keyCode == 40){
+            nextY += 5;
+            this.speedModifier = 1.5;
+        }
+        else if(keyCode == 38){
+            nextY -= 5;
+            this.speedModifier = 1.5;
+        }
+        else{
+            this.speedModifier = 0;
+        }
+        nextY = nextY < 0 ? 0 : nextY;
+        nextY = nextY + this.height > 480 ? 480 - this.height : nextY;
+        this.y = nextY;
     }
 }
 let player = new paddle(5, 200, 25, 100);
 let ai = new paddle(610, 200, 25, 100);
 
-let ball = {x: 320, y: 240, radius: 5.5, xSpeed: 2.5, ySpeed: 0.5,
+let ball = {x: 320, y: 240, radius: 5.5, xSpeed: 2, ySpeed: 0,
     reverseX: function(){
         this.xSpeed *= -1;
     },
     reverseY: function(){
         this.ySpeed *= -1
+    },
+    reset: function(){
+        this.x = 320;
+        this.y = 240;
+        this.xSpeed = 2;
+        this.ySpeed = 0
+    },
+    isBouncing: function(){
+        return ball.ySpeed != 0;
+    },
+    modifyXSpeedBy: function(modification){
+        modification = this.xSpeed < 0 ? modification * -1 : modification;
+        let nextValue = this.xSpeed + modification;
+        nextValue = Math.abs(nextValue) > 9 ? 9 : nextValue;
+        this.speed = nextValue;
+    },
+    modifyYSpeedBy: function(modification){
+        modification = this.ySpeed < 0 ? modification * -1 : modification;
+        this.ySpeed += modification;
     }
 
 };
@@ -40,9 +77,22 @@ function tick(){
 function updateGame(){
     ball.x += ball.xSpeed;
     ball.y += ball.ySpeed;
-    if(player.hasCollidedWith(ball) || ai.hasCollidedWith(ball)){
-        ball.reverseX();
+    if(ball.x < 0 || ball.x > 640){
+        ball.reset()
+    }
+    if(ball.y <= 0 || ball.y >= 480){
         ball.reverseY();
+    }
+    let collidedWithPlayer = player.hasCollidedWith(ball);
+    let collidedWithAi = ai.hasCollidedWith(ball);
+    if(collidedWithPlayer || collidedWithAi){
+        ball.reverseX();
+        ball.modifyXSpeedBy(0.25);
+        let speedUpValue = collidedWithPlayer ? player.speedModifier : ai.speedModifier;
+        ball.modifyYSpeedBy(speedUpValue);
+    }
+    for (let keyCode in heldDown){
+        player.move(keyCode);
     }
 }
 
@@ -65,6 +115,13 @@ function renderBall(ball){
     ctx.fill()
 }
 
+let heldDown = {};
+window.addEventListener("keydown", function(keyInfo){
+    heldDown[event.keyCode] = true;
+}, false);
+window.addEventListener("keyup", function(keyInfo){
+    delete heldDown[event.keyCode];
+}, false);
 
 tick();
 
