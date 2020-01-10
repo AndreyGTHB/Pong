@@ -94,6 +94,9 @@ function updateGame(){
     for (let keyCode in heldDown){
         player.move(keyCode);
     }
+    let aiMiddle = ai.y + ai.height / 2;
+    if (aiMiddle < ball.y) ai.move(40);
+    if (aiMiddle > ball.y) ai.move(38);
 }
 
 
